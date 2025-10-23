@@ -138,3 +138,5 @@ wandb/*
 dataset_pipeline/sample_webdataset
 !analysis/proxy_eval.py
 !analysis/bridge_window5_action.jsonl
+
+datasets

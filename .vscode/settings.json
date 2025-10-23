@@ -1,0 +1,11 @@
+{
+  "python.analysis.exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/build",
+    "**/dist",
+    "**/data",
+    "**/huggingface",
+    "**/datasets"
+  ],
+}
