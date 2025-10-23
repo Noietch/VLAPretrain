@@ -14,9 +14,9 @@ from torch.utils.data import get_worker_info
 import torchvision.transforms as transforms
 from dataclasses import dataclass
 
-from dataloder.utils import set_global_seed
-from dataloder.utils import CollatorForLatentAction
-from dataloder.dataset import RLDSDataset, EpisodicRLDSDataset, RLDSBatchTransformVideo
+from dataloder.openvla.utils import set_global_seed
+from dataloder.openvla.utils import CollatorForLatentAction
+from dataloder.openvla.dataset import RLDSDataset, EpisodicRLDSDataset, RLDSBatchTransformVideo
                                     
 
 
