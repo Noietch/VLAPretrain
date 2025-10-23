@@ -7,8 +7,8 @@ from torch import nn
 from einops import rearrange, pack
 from einops.layers.torch import Rearrange
 
-from laq_model.attention import Transformer, ContinuousPositionBias
-from laq_model.nsvq import NSVQ
+from .attention import Transformer, ContinuousPositionBias
+from .nsvq import NSVQ
 
 def exists(val):
     return val is not None

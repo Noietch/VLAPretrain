@@ -13,12 +13,12 @@ from torchvision.utils import make_grid, save_image
 
 import torchvision.transforms as T
 
-from laq_model.optimizer import get_optimizer
+from .optimizer import get_optimizer
 
 from ema_pytorch import EMA
 
 
-from laq_model.data import ImageVideoDataset
+from .data import ImageVideoDataset
 
 
 from accelerate import Accelerator, DistributedDataParallelKwargs
