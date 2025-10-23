@@ -2,7 +2,7 @@ from math import sqrt
 from random import choice
 from pathlib import Path
 from shutil import rmtree
-import wandb
+# import wandb
 
 from beartype import beartype
 
@@ -259,8 +259,8 @@ class LAQTrainer(nn.Module):
         self.optim.step()
         self.optim.zero_grad()
 
-        if self.is_main:  # Ensure only the main process logs in a distributed setting
-            wandb.log(logs)
+        # if self.is_main:  # Ensure only the main process logs in a distributed setting
+        #     wandb.log(logs)
 
         if self.is_main and self.use_ema:
             self.ema_vae.update()
@@ -329,17 +329,17 @@ class LAQTrainer(nn.Module):
 
     def train(self, log_fn = noop):
         device = next(self.vae.parameters()).device
-        if self.accelerator.is_main_process:
-            wandb.init(project='phenaki_cnn',name=self.results_folder_str.split('/')[-1], config={
-                "learning_rate": self.lr,
-                "batch_size": self.batch_size,
-                "num_train_steps": self.num_train_steps,
-            })
+        # if self.accelerator.is_main_process:
+        #     wandb.init(project='phenaki_cnn',name=self.results_folder_str.split('/')[-1], config={
+        #         "learning_rate": self.lr,
+        #         "batch_size": self.batch_size,
+        #         "num_train_steps": self.num_train_steps,
+        #     })
 
         while self.steps < self.num_train_steps:
             logs = self.train_step()
             log_fn(logs)
 
         self.print('training complete')
-        if self.accelerator.is_main_process:
-            wandb.finish()  
+        # if self.accelerator.is_main_process:
+            # wandb.finish()  

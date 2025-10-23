@@ -16,9 +16,9 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from prismatic.vla.datasets.rlds import obs_transforms, traj_transforms
-from prismatic.vla.datasets.rlds.utils import goal_relabeling, task_augmentation
-from prismatic.vla.datasets.rlds.utils.data_utils import (
+from . import obs_transforms, traj_transforms
+from .utils import goal_relabeling, task_augmentation
+from .utils.data_utils import (
     NormalizationType,
     allocate_threads,
     get_dataset_statistics,

@@ -7,7 +7,7 @@ from torch import Tensor
 from einops import rearrange, repeat
 from transformers import T5EncoderModel, T5Tokenizer
 
-from latent_action_model.genie.modules.blocks import patchify, unpatchify, SpatioTemporalTransformer, SpatioTransformer, VectorQuantizer, \
+from .blocks import patchify, unpatchify, SpatioTemporalTransformer, SpatioTransformer, VectorQuantizer, \
                                                      MVSpatioTemporalTransformer, MVSpatioTransformer
 
 
@@ -40,7 +40,10 @@ class UncontrolledDINOLatentActionModel(nn.Module):
         patch_token_dim = in_dim * patch_size ** 2
 
         self.dino_transform = transforms.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD)
-        self.dino_encoder = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14_reg')
+        # Load DINOv2 model from local checkpoint
+        checkpoint = torch.load('huggingface/dinov2_vitb14_reg4_pretrain.pth')
+        self.dino_encoder = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14_reg', pretrained=False)
+        self.dino_encoder.load_state_dict(checkpoint)
         self.dino_encoder.requires_grad_(False)
 
         dino_dim = 768
@@ -78,12 +81,12 @@ class UncontrolledDINOLatentActionModel(nn.Module):
         )
 
         # Load T5 text encoder model
-        self.text_encoder = T5EncoderModel.from_pretrained('./t5-base')
+        self.text_encoder = T5EncoderModel.from_pretrained('huggingface/google-t5/t5-base')
         self.text_encoder.requires_grad_(False)
         self.lang_proj = nn.Linear(768, model_dim)
 
         # Load T5 tokenizer
-        self.tokenizer = T5Tokenizer.from_pretrained('./t5-base')
+        self.tokenizer = T5Tokenizer.from_pretrained('huggingface/google-t5/t5-base')
 
     def encode_text(self, lang: List):
         # Tokenize the batch with padding to the longest sequence

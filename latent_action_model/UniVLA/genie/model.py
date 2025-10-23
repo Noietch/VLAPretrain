@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import piq
 import torch
-import wandb
+# import wandb
 from PIL import Image
 from einops import rearrange
 from lightning import LightningModule
@@ -84,8 +84,8 @@ class DINO_LAM(LightningModule):
 
         self.task_name = task_name
         self.distributed_state = PartialState()
-        if self.distributed_state.is_main_process:
-            wandb.init(name=task_name, reinit=True)
+        # if self.distributed_state.is_main_process:
+            # wandb.init(name=task_name, reinit=True)
 
     def shared_step(self, batch: Dict) -> Tuple:
         # batch: keys['videos', 'task_instruction', 'action', 'dataset_names']
@@ -154,8 +154,8 @@ class DINO_LAM(LightningModule):
             sync_dist=True
         )
 
-        if self.distributed_state.is_main_process:
-            wandb.log({**{"train_loss": loss}, **{f"train/{k}": v for k, v in aux_losses}})
+        # if self.distributed_state.is_main_process:
+            # wandb.log({**{"train_loss": loss}, **{f"train/{k}": v for k, v in aux_losses}})
 
         return loss
 
