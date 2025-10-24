@@ -14,7 +14,6 @@ transform = T.Compose([
 dataset = LeRobotDataset(
     "aloha_mobile_cabinet/main",
     root="datasets/lerobot/aloha_mobile_cabinet/main",
-    video_backend="pyav",
     image_transforms=transform,
     delta_timestamps={
         "observation.images.cam_high": [-1, 0],
