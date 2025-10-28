@@ -3,20 +3,18 @@ type = ml-easy-job_train
 
 [resource]
 usergroup = hadoop-aipnlp
-queue = root.zw05_training_cluster.hadoop-aipnlp.llm_debug
+queue = root.zw05_training_cluster.hadoop-aipnlp.eva_mm_prod
 
 [roles]
 workers = 1
-worker.memory = 180000
-worker.vcore = 180
-worker.gcores40g = 2
+worker.memory = 262144
+worker.vcore = 32
+worker.gcoresh20-141g = 1
 worker.ports = 1
-worker.script = /mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/envs/lerobot_rdt/bin/python extract_data/extract_videos_by_task.py \
-  --input /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/datasets/bridge_dataset/1.0.0 \
-  --output /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/datasets/bridge_v2 \
-  --fps 5
+worker.script = echo "hello world"
 
 [docker]
-afo.docker.image.name = registryonline-hulk.sankuai.com/custom_prod/com.sankuai.data.hadoop.gpu/hadoop-mtcv_mm:03-mpich3.0-f4c7f295
+afo.docker.image.name = registry-offlinebiz.sankuai.com/custom_prod/com.sankuai.data.hadoop.gpu/aipnlp/training_codelab_ubuntu22_cuda12.8_python3.12_torch2.8_891e7a35:v1.0.0
 
 [others]
+

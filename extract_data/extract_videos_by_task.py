@@ -60,6 +60,32 @@ def get_task_name(language):
         return lang_item.decode('utf-8').strip() if isinstance(lang_item, bytes) else str(lang_item).strip()
     return None
 
+def is_chunk_processed(data_path, output_dir):
+    """
+    检查 TFRecord 文件对应的 chunk 是否已经处理过
+
+    Args:
+        data_path: TFRecord 文件路径
+        output_dir: 输出目录
+
+    Returns:
+        bool: 如果已处理返回 True，否则返回 False
+    """
+    import re
+    match = re.search(r'-(\d+)-of-', os.path.basename(data_path))
+    chunk_number = match.group(1) if match else "00000"
+    chunk_dir_name = f"chunk-{chunk_number}"
+
+    # 检查视频和 JSONL 目录是否存在且包含文件
+    video_chunk_dir = os.path.join(output_dir, "video", chunk_dir_name)
+    jsonl_chunk_dir = os.path.join(output_dir, "jsonl", chunk_dir_name)
+
+    # 如果目录存在且包含文件，则认为已处理
+    video_exists = os.path.exists(video_chunk_dir) and len(os.listdir(video_chunk_dir)) > 0
+    jsonl_exists = os.path.exists(jsonl_chunk_dir) and len(os.listdir(jsonl_chunk_dir)) > 0
+
+    return video_exists and jsonl_exists
+
 def extract_videos_by_task(data_path, output_dir, fps=5):
     os.makedirs(output_dir, exist_ok=True)
 
@@ -153,11 +179,29 @@ def process_directory(directory_path, output_dir, fps=5):
         return
 
     print(f"找到 {len(tfrecord_files)} 个 TFRecord 文件")
+
+    # 过滤掉已处理的文件
+    files_to_process = []
+    skipped_files = []
+
+    for tfrecord_file in tfrecord_files:
+        if is_chunk_processed(tfrecord_file, output_dir):
+            skipped_files.append(tfrecord_file)
+        else:
+            files_to_process.append(tfrecord_file)
+
+    print(f"已处理文件: {len(skipped_files)} 个")
+    print(f"待处理文件: {len(files_to_process)} 个")
+
+    if len(files_to_process) == 0:
+        print("\n所有文件都已处理完成，无需重新处理！")
+        return
+
     print("=" * 80)
 
     # 处理每个文件
-    for idx, tfrecord_file in enumerate(tfrecord_files, 1):
-        print(f"\n[{idx}/{len(tfrecord_files)}] 处理文件: {os.path.basename(tfrecord_file)}")
+    for idx, tfrecord_file in enumerate(files_to_process, 1):
+        print(f"\n[{idx}/{len(files_to_process)}] 处理文件: {os.path.basename(tfrecord_file)}")
         print("-" * 80)
         try:
             extract_videos_by_task(tfrecord_file, output_dir, fps)
@@ -168,7 +212,7 @@ def process_directory(directory_path, output_dir, fps=5):
             continue
 
     print("\n" + "=" * 80)
-    print("所有文件处理完成!")
+    print(f"所有文件处理完成! (处理: {len(files_to_process)}, 跳过: {len(skipped_files)})")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

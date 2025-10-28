@@ -482,6 +482,3 @@ class BridgeDataset:
     def iterator(self):
         return self.tf_dataset.prefetch(tf.data.AUTOTUNE).as_numpy_iterator()
 
-
-if __init__ == _main__:
-    

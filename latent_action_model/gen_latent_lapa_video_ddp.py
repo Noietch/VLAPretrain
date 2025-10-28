@@ -329,11 +329,11 @@ if __name__ == "__main__":
     # Model configurations
     MODEL_CONFIGS = {
         "lapa": {
-            "model_path": "huggingface/latent-action-pretraining/LAPA-7B-openx/laq_openx.pt",
+            "model_path": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/huggingface/latent-action-pretraining/LAPA-7B-openx/laq_openx.pt",
             "image_size": 256,
         },
         "univla": {
-            "model_path": "huggingface/qwbu/univla-latent-action-model/main/lam-stage-2.ckpt",
+            "model_path": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/huggingface/qwbu/univla-latent-action-model/main/lam-stage-2.ckpt",
             "image_size": 224,
         },
     }
