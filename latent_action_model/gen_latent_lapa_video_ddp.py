@@ -16,22 +16,49 @@ from tqdm import tqdm
 import argparse
 import lerobot
 from lerobot.datasets.lerobot_dataset import LeRobotDataset, LeRobotDatasetMetadata
+import json
 
 
-class VideoFramesDataset(Dataset):
-    """Dataset that reads and returns preprocessed frames for each video file."""
+class VideoFrameSliceDataset(Dataset):
+    """Dataset that returns frame slices from videos for distributed processing."""
 
-    def __init__(self, video_files, image_size):
-        self.video_files = list(video_files)
+    def __init__(self, video_metadata, image_size, slice_size=100):
+        """
+        Args:
+            video_metadata: List of dicts with keys: 'video_path', 'num_frames', 'output_path'
+            image_size: Target image size for resizing
+            slice_size: Number of frames per slice
+        """
         self.image_size = image_size
+        self.slice_size = slice_size
+
+        # Build slice index: each item is (video_idx, start_frame, end_frame)
+        self.slices = []
+        for video_idx, meta in enumerate(video_metadata):
+            num_frames = meta['num_frames']
+            for start_frame in range(0, num_frames, slice_size):
+                end_frame = min(start_frame + slice_size, num_frames)
+                self.slices.append({
+                    'video_idx': video_idx,
+                    'video_path': meta['video_path'],
+                    'output_path': meta['output_path'],
+                    'start_frame': start_frame,
+                    'end_frame': end_frame,
+                    'total_frames': num_frames
+                })
 
     def __len__(self):
-        return len(self.video_files)
+        return len(self.slices)
 
     def __getitem__(self, index):
-        vf = self.video_files[index]
-        decoder = VideoDecoder(vf)
-        frames = decoder[:].float() / 255.0  # Shape: (T, C, H, W), normalize to [0, 1]
+        slice_info = self.slices[index]
+        video_path = slice_info['video_path']
+        start_frame = slice_info['start_frame']
+        end_frame = slice_info['end_frame']
+
+        # Load only the required frame slice
+        decoder = VideoDecoder(video_path)
+        frames = decoder[start_frame:end_frame].float() / 255.0  # Shape: (T, C, H, W)
 
         # Resize frames to target size
         T_frames, C, H, W = frames.shape
@@ -40,36 +67,15 @@ class VideoFramesDataset(Dataset):
                 F.resize(frames[i], [self.image_size, self.image_size], antialias=True)
                 for i in range(T_frames)
             ])
-        return vf, frames
 
-
-class LerobotFramesDataset(Dataset):
-    """Dataset that loads frames from LeRobot dataset."""
-
-    def __init__(self, repo_id, image_size, delta_timestamps=None):
-        self.image_size = image_size
-        self.dataset = LeRobotDataset(repo_id, delta_timestamps=delta_timestamps)
-        self.camera_key = list(self.dataset.meta.camera_keys)[0]
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, index):
-        data = self.dataset[index]
-        frames = data[self.camera_key]  # Shape: (T, C, H, W)
-
-        # Normalize if needed
-        frames = frames.float() / 255.0 if frames.dtype == torch.uint8 else frames
-
-        # Resize frames to target size
-        T_frames, C, H, W = frames.shape
-        if H != self.image_size or W != self.image_size:
-            frames = torch.stack([
-                F.resize(frames[i], [self.image_size, self.image_size], antialias=True)
-                for i in range(T_frames)
-            ])
-        return index, frames
-
+        return {
+            'frames': frames,
+            'video_path': video_path,
+            'output_path': slice_info['output_path'],
+            'start_frame': start_frame,
+            'end_frame': end_frame,
+            'total_frames': slice_info['total_frames']
+        }
 
 def setup_distributed():
     """Initialize distributed training environment."""
@@ -92,21 +98,33 @@ def cleanup_distributed():
         dist.destroy_process_group()
 
 
-def process_and_save_video_from_frames(frames, output_path, model, model_type="lapa", window_size=5, batch_size=32):
-    """Process preloaded frames tensor and save latent action outputs with batch inference."""
-    total_frames = frames.shape[0]
+def process_frame_slice(frames, start_frame, total_frames, model, model_type="lapa", window_size=5, batch_size=32):
+    """Process a slice of frames and return latent action outputs."""
+    slice_frames = frames.shape[0]
 
     # Prepare frame pairs for batch processing
-    frame_pairs = torch.stack([
-        torch.stack([frames[t], frames[t + min(window_size, total_frames - t - 1)]], dim=0)
-        for t in range(total_frames)
-    ])  # Shape: (T, 2, C, H, W)
+    frame_pairs = []
+    for t in range(slice_frames):
+        global_t = start_frame + t
+        # Calculate the future frame index
+        future_offset = min(window_size, total_frames - global_t - 1)
+
+        if t + future_offset < slice_frames:
+            # Future frame is in current slice
+            future_frame = frames[t + future_offset]
+        else:
+            # Future frame is beyond current slice, use last frame in slice
+            future_frame = frames[-1]
+
+        frame_pairs.append(torch.stack([frames[t], future_frame], dim=0))
+
+    frame_pairs = torch.stack(frame_pairs)  # Shape: (T, 2, C, H, W)
 
     # Batch inference
     latent_outputs = []
-    for batch_idx in range((total_frames + batch_size - 1) // batch_size):
+    for batch_idx in range((slice_frames + batch_size - 1) // batch_size):
         start_idx = batch_idx * batch_size
-        end_idx = min(start_idx + batch_size, total_frames)
+        end_idx = min(start_idx + batch_size, slice_frames)
         batch_pairs = frame_pairs[start_idx:end_idx].cuda()
 
         with torch.no_grad():
@@ -116,9 +134,8 @@ def process_and_save_video_from_frames(frames, output_path, model, model_type="l
                 output = model.vq_encode(batch_pairs)["indices"]
             latent_outputs.append(output.cpu())
 
-    # Save results
     codebook_idx = torch.cat(latent_outputs, dim=0)
-    torch.save({"codebook_idx": codebook_idx, "num_frames": total_frames, "model_type": model_type}, output_path)
+    return codebook_idx, start_frame
 
 
 def find_videos(video_dir, pattern="*.mp4"):
@@ -170,12 +187,50 @@ def _build_output_path(video_file, model_type, base_output_dir):
     return os.path.join(output_dir, f"{video_path_obj.stem}.pt")
 
 
+def scan_video_metadata(video_files, model_type, base_output_dir, rank=0):
+    """Scan all videos to get frame counts and output paths."""
+    metadata = []
+    if rank == 0:
+        print(f"Scanning {len(video_files)} videos to get frame counts...")
+
+    for i, vf in enumerate(video_files):
+        if not os.path.exists(vf):
+            continue
+
+        output_path = _build_output_path(vf, model_type, base_output_dir)
+
+        # Skip if already processed
+        if os.path.exists(output_path):
+            continue
+
+        try:
+            decoder = VideoDecoder(vf)
+            num_frames = len(decoder)
+            metadata.append({
+                'video_path': vf,
+                'num_frames': num_frames,
+                'output_path': output_path
+            })
+            if rank == 0 and (i + 1) % 10 == 0:
+                print(f"  Scanned {i + 1}/{len(video_files)} videos...")
+        except Exception as e:
+            if rank == 0:
+                print(f"  Error scanning {vf}: {e}")
+
+    if rank == 0:
+        print(f"Found {len(metadata)} videos to process")
+        total_frames = sum(m['num_frames'] for m in metadata)
+        print(f"Total frames: {total_frames}")
+
+    return metadata
+
+
 def gen_latent_action(
     model_type, model_path, video_path, video_dir, video_pattern,
     base_output_dir, image_size=256, window_size=5, batch_size=32,
-    num_workers=0, prefetch_factor=2
+    num_workers=0, prefetch_factor=2, slice_size=100
 ):
-    """Generate latent action representations from videos using distributed processing."""
+    """Generate latent action representations from videos using distributed processing with frame slicing."""
 
     # Setup distributed training
     rank, world_size, local_rank = setup_distributed()
@@ -206,49 +261,140 @@ def gen_latent_action(
     # Load model
     model = load_model(model_type, model_path, local_rank)
 
-    # Pre-compute output paths and filter existing
-    tasks = [
-        (vf, _build_output_path(vf, model_type, base_output_dir))
-        for vf in video_files
-        if os.path.exists(vf)
-    ]
-    tasks = [(vf, out) for vf, out in tasks if not os.path.exists(out)]
+    # Scan video metadata (only rank 0 does this)
+    if rank == 0:
+        video_metadata = scan_video_metadata(video_files, model_type, base_output_dir, rank)
+        if len(video_metadata) == 0:
+            print("Nothing to process.")
+            cleanup_distributed()
+            return
+    else:
+        video_metadata = None
 
-    if len(tasks) == 0:
+    # Broadcast metadata to all ranks
+    if dist.is_initialized():
+        if rank == 0:
+            metadata_str = json.dumps(video_metadata)
+        else:
+            metadata_str = None
+
+        # Broadcast the metadata
+        metadata_list = [metadata_str]
+        dist.broadcast_object_list(metadata_list, src=0)
+
+        if rank != 0:
+            video_metadata = json.loads(metadata_list[0])
+
+    if len(video_metadata) == 0:
         if rank == 0:
             print("Nothing to process.")
         cleanup_distributed()
         return
 
     if rank == 0:
-        print(f"\nProcessing {len(tasks)} video(s) with {model_type.upper()} "
-              f"(batch_size={batch_size}, world_size={world_size})...")
+        total_slices = sum((m['num_frames'] + slice_size - 1) // slice_size for m in video_metadata)
+        print(f"\nProcessing {len(video_metadata)} video(s) with {model_type.upper()}")
+        print(f"Slice size: {slice_size} frames, Total slices: {total_slices}")
+        print(f"Batch size: {batch_size}, World size: {world_size}")
         print(f"Using DataLoader with num_workers={num_workers}, prefetch_factor={prefetch_factor}")
 
-    # Create dataset and dataloader
-    dataset = VideoFramesDataset([vf for vf, _ in tasks], image_size)
+    # Create dataset and dataloader with frame slicing
+    dataset = VideoFrameSliceDataset(video_metadata, image_size, slice_size)
     sampler = DistributedSampler(dataset, num_replicas=world_size, rank=rank, shuffle=False, drop_last=False)
     loader = DataLoader(
         dataset, batch_size=1, shuffle=False, num_workers=num_workers,
         prefetch_factor=prefetch_factor if num_workers > 0 else None,
         persistent_workers=(num_workers > 0), pin_memory=True,
-        collate_fn=lambda items: items, sampler=sampler
+        collate_fn=lambda items: items[0], sampler=sampler
     )
 
-    # Process videos assigned to this rank
-    for batch in loader:
-        vf, frames = batch[0]
-        output_path = _build_output_path(vf, model_type, base_output_dir)
+    # Process frame slices assigned to this rank
+    # Group results by video
+    video_results = {}
 
-        print(f"[Rank {rank}/{world_size}] Processing: {vf}")
-        process_and_save_video_from_frames(frames, output_path, model, model_type, window_size, batch_size)
-        print(f"[Rank {rank}/{world_size}] Saved to: {output_path}")
+    for slice_data in loader:
+        frames = slice_data['frames']
+        video_path = slice_data['video_path']
+        output_path = slice_data['output_path']
+        start_frame = slice_data['start_frame']
+        total_frames = slice_data['total_frames']
 
-    # Wait for all processes to finish
+        print(f"[Rank {rank}/{world_size}] Processing: {video_path} "
+              f"[frames {start_frame}-{slice_data['end_frame']}/{total_frames}]")
+
+        # Process this slice
+        codebook_idx, start_frame = process_frame_slice(
+            frames, start_frame, total_frames, model, model_type, window_size, batch_size
+        )
+
+        # Store results grouped by video
+        if output_path not in video_results:
+            video_results[output_path] = {
+                'slices': [],
+                'total_frames': total_frames,
+                'video_path': video_path
+            }
+
+        video_results[output_path]['slices'].append({
+            'codebook_idx': codebook_idx,
+            'start_frame': start_frame
+        })
+
+    # Wait for all processes to finish processing
     if dist.is_initialized():
         dist.barrier()
 
-    if rank == 0:
+    # Gather results from all ranks
+    if dist.is_initialized():
+        all_results = [None] * world_size
+        dist.all_gather_object(all_results, video_results)
+
+        # Rank 0 merges and saves results
+        if rank == 0:
+            print("\nMerging results from all ranks...")
+            merged_results = {}
+            for rank_results in all_results:
+                for output_path, data in rank_results.items():
+                    if output_path not in merged_results:
+                        merged_results[output_path] = {
+                            'slices': [],
+                            'total_frames': data['total_frames'],
+                            'video_path': data['video_path']
+                        }
+                    merged_results[output_path]['slices'].extend(data['slices'])
+
+            # Save merged results for each video
+            for output_path, data in merged_results.items():
+                # Sort slices by start_frame
+                data['slices'].sort(key=lambda x: x['start_frame'])
+
+                # Concatenate all slices
+                codebook_indices = torch.cat([s['codebook_idx'] for s in data['slices']], dim=0)
+
+                # Save final result
+                torch.save({
+                    'codebook_idx': codebook_indices,
+                    'num_frames': data['total_frames'],
+                    'model_type': model_type
+                }, output_path)
+
+                print(f"Saved: {output_path} ({data['total_frames']} frames)")
+
+            print("\n" + "=" * 80 + "\nAll videos processed!\n" + "=" * 80)
+    else:
+        # Non-distributed mode: save results directly
+        for output_path, data in video_results.items():
+            data['slices'].sort(key=lambda x: x['start_frame'])
+            codebook_indices = torch.cat([s['codebook_idx'] for s in data['slices']], dim=0)
+
+            torch.save({
+                'codebook_idx': codebook_indices,
+                'num_frames': data['total_frames'],
+                'model_type': model_type
+            }, output_path)
+
+            print(f"Saved: {output_path} ({data['total_frames']} frames)")
+
         print("\n" + "=" * 80 + "\nAll videos processed!\n" + "=" * 80)
 
     cleanup_distributed()
@@ -259,6 +405,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate latent action representations from videos")
     parser.add_argument("--video_dir", type=str, default="extract_data/video", help="Directory containing video files")
     parser.add_argument("--base_output_dir", type=str, default="extract_data/latent_action/", help="Base output directory")
+    parser.add_argument("--slice_size", type=int, default=100, help="Number of frames per slice for distributed processing")
     args = parser.parse_args()
 
     # Model configurations
@@ -289,4 +436,5 @@ if __name__ == "__main__":
         batch_size=4,
         num_workers=4,
         prefetch_factor=2,
+        slice_size=args.slice_size,
     )
