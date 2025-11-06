@@ -1,4 +1,13 @@
 {
+  "python.analysis.exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/build",
+    "**/dist",
+    "**/data",
+    "**/huggingface",
+    "**/datasets"
+  ],
   "cursorpyright.analysis.exclude": [
     "**/node_modules",
     "**/__pycache__",
