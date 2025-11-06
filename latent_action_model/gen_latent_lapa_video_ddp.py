@@ -324,7 +324,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Model selection: "lapa" or "univla"
-    model_type = "univla"
+    model_type = "lapa"
 
     # Model configurations
     MODEL_CONFIGS = {
@@ -341,7 +341,7 @@ if __name__ == "__main__":
     # Common parameters
     window_size = 5
     batch_size = 256
-    num_workers = 1  # >0 enables async video decoding via DataLoader workers
+    num_workers = 2  # >0 enables async video decoding via DataLoader workers
     prefetch_factor = 2
 
     # Video input options

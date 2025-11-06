@@ -4,7 +4,22 @@
 #   --fps 5
 
 # 或者使用自定义参数运行
-CUDA_VISIBLE_DEVICES=0,1,2,3 /mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/envs/lerobot_rdt/bin/torchrun --nproc_per_node=4 --master_port=12345 latent_action_model/gen_latent_lapa_video_ddp.py \
-    --video_dir /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/datasets/bridge_v2/video \
-    --base_output_dir /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/datasets/bridge_v2/latent_action/ \
+CUDA_VISIBLE_DEVICES=0,1 /mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/envs/lerobot_rdt/bin/torchrun --nproc_per_node=2 --master_port=12345 /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/latent_action_model/gen_latent_lapa_video_ddp.py \
+    --video_dir /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/datasets/Dexmal/libero/libero/libero_10/video \
+    --base_output_dir /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/datasets/Dexmal/libero/libero/libero_10/latent_action \
 
+CUDA_VISIBLE_DEVICES=0,1 /mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/envs/lerobot_rdt/bin/torchrun --nproc_per_node=2 --master_port=12345 /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/latent_action_model/gen_latent_lapa_video_ddp.py \
+    --video_dir /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/datasets/Dexmal/libero/libero/libero_90/video \
+    --base_output_dir /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/datasets/Dexmal/libero/libero/libero_90/latent_action \
+
+CUDA_VISIBLE_DEVICES=0,1 /mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/envs/lerobot_rdt/bin/torchrun --nproc_per_node=2 --master_port=12345 /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/latent_action_model/gen_latent_lapa_video_ddp.py \
+    --video_dir /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/datasets/Dexmal/libero/libero/libero_object/video \
+    --base_output_dir /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/datasets/Dexmal/libero/libero/libero_object/latent_action \
+
+CUDA_VISIBLE_DEVICES=0,1 /mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/envs/lerobot_rdt/bin/torchrun --nproc_per_node=2 --master_port=12345 /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/latent_action_model/gen_latent_lapa_video_ddp.py \
+    --video_dir /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/datasets/Dexmal/libero/libero/libero_goal/video \
+    --base_output_dir /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/datasets/Dexmal/libero/libero/libero_goal/latent_action \
+
+CUDA_VISIBLE_DEVICES=0,1 /mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/envs/lerobot_rdt/bin/torchrun --nproc_per_node=2 --master_port=12345 /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/latent_action_model/gen_latent_lapa_video_ddp.py \
+    --video_dir /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/datasets/Dexmal/libero/libero/libero_spatial/video \
+    --base_output_dir /home/hadoop-aipnlp/dolphinfs_ssd_hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/datasets/Dexmal/libero/libero/libero_spatial/latent_action \

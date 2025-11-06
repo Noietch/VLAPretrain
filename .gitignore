@@ -142,3 +142,4 @@ dataset_pipeline/sample_webdataset
 datasets
 huggingface
 ./extract_data/bridge_video/
+hope/*
