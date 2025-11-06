@@ -1,2 +1,4 @@
 datasets/*
 huggingface/*
+extracted_data/*
+./extract_data/bridge_video/

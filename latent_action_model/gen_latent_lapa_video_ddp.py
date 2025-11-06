@@ -17,7 +17,8 @@ from latent_action_model.LAPA.laq_model import LatentActionQuantization
 from latent_action_model.UniVLA.genie.model import ControllableDINOLatentActionModel
 from tqdm import tqdm
 import argparse
-
+import lerobot
+from lerobot.datasets.lerobot_dataset import LeRobotDataset, LeRobotDatasetMetadata
 
 class VideoFramesDataset(Dataset):
     """Dataset that reads and returns preprocessed frames for each video file."""
@@ -174,10 +175,21 @@ def load_model(model_type, model_path, local_rank):
 
 
 def _build_output_path(video_file, model_type, base_output_dir):
-    video_path_obj = Path(video_file)
-    output_dir = os.path.join(base_output_dir, model_type, video_path_obj.parent.name)
-    os.makedirs(output_dir, exist_ok=True)
-    return os.path.join(output_dir, f"{video_path_obj.stem}.pt")
+    video_path = str(video_file)
+    # Replace "/videos/" or "/video/" with "/latent_action/{model_type}"
+    if "/videos/" in video_path:
+        output_path = video_path.replace("/videos/", f"/latent_action/{model_type}/")
+    elif "/video/" in video_path:
+        output_path = video_path.replace("/video/", f"/latent_action/{model_type}/")
+    else:
+        # Fallback: if neither pattern found, use original logic
+        video_path_obj = Path(video_file)
+        output_dir = os.path.join(base_output_dir, model_type, video_path_obj.parent.name)
+        os.makedirs(output_dir, exist_ok=True)
+        return os.path.join(output_dir, f"{video_path_obj.stem}.pt")
+    output_path = os.path.splitext(output_path)[0] + ".pt"
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    return output_path
 
 
 def gen_latent_action(
@@ -339,10 +351,10 @@ if __name__ == "__main__":
     }
 
     # Common parameters
-    window_size = 5
+    window_size = 50
     batch_size = 256
-    num_workers = 2  # >0 enables async video decoding via DataLoader workers
-    prefetch_factor = 2
+    num_workers = 0  # >0 enables async video decoding via DataLoader workers
+    prefetch_factor = 4
 
     # Video input options
     video_path = None  # Option 1: Single video
