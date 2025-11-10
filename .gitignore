@@ -143,3 +143,4 @@ datasets
 huggingface
 ./extract_data/bridge_video/
 hope/*
+trash/

@@ -3,16 +3,16 @@ type = ml-easy-job
 
 [resource]
 usergroup = hadoop-aipnlp
-# queue = root.zw05_training_cluster.hadoop-aipnlp.llm_debug
-queue = root.zw05_training_cluster.hadoop-aipnlp.eva_mm_prod
+queue = root.zw05_training_cluster.hadoop-aipnlp.llm_debug
+# queue = root.zw05_training_cluster.hadoop-aipnlp.eva_mm_prod
 
 [roles]
-worker.script = bash /mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/workspace/LVLA/latent_action_model/data_proc.sh
+worker.script = bash /mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yiyang11/workspace/VLAPretrain/latent_action_model/data_proc.sh
 workers = 1
 worker.memory = 1048576
 worker.vcore = 196
-# worker.gcores80g = 1
-worker.gcoresh20-141g = 4
+worker.gcores80g = 8
+# worker.gcoresh20-141g = 4
 worker.ports = 1
 
 [am]
@@ -20,10 +20,15 @@ am.memory = 4096
 am.vcore = 4
 
 [docker]
-# afo.docker.image.name = registry-offlinebiz.sankuai.com/custom_prod/com.sankuai.data.hadoop.gpu/aipnlp/training_cuda12.6_py310_glibc2.32_torch2.8.0_fla2.8.3_re_vllm0.11.0_sglang_0.4.10_stable_719dd0f7:v1.0.2
-afo.docker.image.name = registry-offlinebiz.sankuai.com/custom_prod/com.sankuai.phxmlp.mtjupyter.singleuser/aipnlp_training_codelab_ubuntu22_cuda12.8_python3.12_dex_1.0.2_fd78dd96
+afo.docker.image.name = registry-offlinebiz.sankuai.com/custom_prod/com.sankuai.data.hadoop.gpu/aipnlp/training_cuda12.6_py310_glibc2.32_torch2.8.0_fla2.8.3_re_vllm0.11.0_sglang_0.4.10_stable_719dd0f7:v1.0.2
+# afo.docker.image.name = registry-offlinebiz.sankuai.com/custom_prod/com.sankuai.phxmlp.mtjupyter.singleuser/aipnlp_training_codelab_ubuntu22_cuda12.8_python3.12_dex_1.0.2_fd78dd96
+# afo.docker.image.name = registry-offlinebiz.sankuai.com/custom_prod/com.sankuai.data.hadoop.gpu/ai-search/training_codelab_ubuntu22_cuda12.8_python3.12_5a48d8f6:v1.0.0
 [tensorboard]
 with.tensor.board = false
+
+[network]
+# afo.app.env.NCCL_SOCKET_IFNAME = eth5,br0
+# afo.network.mode = RDMA
 
 [data]
 afo.data.prefetch = false

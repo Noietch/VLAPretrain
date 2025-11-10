@@ -10,6 +10,42 @@
       "console": "integratedTerminal"
     },
     {
+      "name": "Debug dataset",
+      "type": "debugpy",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "request": "launch",
+      "program": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/envs/lerobot_rdt/bin/torchrun",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "1",
+      },
+      "args": [
+        "latent_action_model/gen_latent_lapa_video_ddp.py",
+        "--video_dir",
+        "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yiyang11/workspace/VLAPretrain/datasets/Dexmal/libero/libero",
+        "base_output_dir",
+        "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yiyang11/workspace/VLAPretrain/datasets/Dexmal/libero/libero/latent_action/",
+      ]
+    },
+        {
+      "name": "Debug dataset lerobot",
+      "type": "debugpy",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "request": "launch",
+      "program": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/envs/lerobot_rdt/bin/torchrun",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "1",
+      },
+      "args": [
+        "latent_action_model/gen_latent_lapa_video_ddp.py",
+        "--video_dir",
+        "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yiyang11/workspace/VLAPretrain/datasets/lerobot_local_debug",
+        "--base_output_dir",
+        "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yiyang11/workspace/VLAPretrain/datasets/lerobot_local_debug/latent_action/",
+      ]
+    },
+    {
       "name": "Debug RDT2 Finetune (accelerate, single GPU)",
       "type": "debugpy",
       "console": "integratedTerminal",
