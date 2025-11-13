@@ -1,5 +1,5 @@
-import sys
-sys.path.append("/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/workspace/LVLA")
+# import sys
+# sys.path.append("/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/workspace/LVLA")
 
 import torch
 import torch.distributed as dist
@@ -14,10 +14,29 @@ from latent_action_model.LAPA.laq_model import LatentActionQuantization
 from latent_action_model.UniVLA.genie.model import ControllableDINOLatentActionModel
 from tqdm import tqdm
 import argparse
-import lerobot
-from lerobot.datasets.lerobot_dataset import LeRobotDataset, LeRobotDatasetMetadata
 import json
 from collections import defaultdict
+
+
+def setup_distributed():
+    """Initialize distributed training environment."""
+    if "RANK" not in os.environ or "WORLD_SIZE" not in os.environ:
+        print("Not using distributed mode")
+        return 0, 1, 0
+
+    rank = int(os.environ["RANK"])
+    world_size = int(os.environ["WORLD_SIZE"])
+    local_rank = int(os.environ["LOCAL_RANK"])
+
+    torch.cuda.set_device(local_rank)
+    dist.init_process_group(backend="nccl", device_id=torch.device(f"cuda:{local_rank}"))
+    return rank, world_size, local_rank
+
+
+def cleanup_distributed():
+    """Clean up distributed training."""
+    if dist.is_initialized():
+        dist.destroy_process_group()
 
 
 class VideoFrameSliceDataset(Dataset):
@@ -78,32 +97,11 @@ class VideoFrameSliceDataset(Dataset):
             'total_frames': slice_info['total_frames']
         }
 
-def setup_distributed():
-    """Initialize distributed training environment."""
-    if "RANK" not in os.environ or "WORLD_SIZE" not in os.environ:
-        print("Not using distributed mode")
-        return 0, 1, 0
-
-    rank = int(os.environ["RANK"])
-    world_size = int(os.environ["WORLD_SIZE"])
-    local_rank = int(os.environ["LOCAL_RANK"])
-
-    torch.cuda.set_device(local_rank)
-    dist.init_process_group(backend="nccl", device_id=torch.device(f"cuda:{local_rank}"))
-    return rank, world_size, local_rank
-
-
-def cleanup_distributed():
-    """Clean up distributed training."""
-    if dist.is_initialized():
-        dist.destroy_process_group()
-
 
 def process_frame_slice(frames, start_frame, total_frames, model, model_type="lapa", window_size=5, batch_size=32):
     """Process a slice of frames and return latent action outputs."""
     slice_frames = frames.shape[0]
 
-    # Prepare frame pairs for batch processing
     frame_pairs = []
     for t in range(slice_frames):
         global_t = start_frame + t
@@ -128,6 +126,7 @@ def process_frame_slice(frames, start_frame, total_frames, model, model_type="la
         end_idx = min(start_idx + batch_size, slice_frames)
         batch_pairs = frame_pairs[start_idx:end_idx].cuda()
 
+        # TODO: Change the input form of model
         with torch.no_grad():
             if model_type == "lapa":
                 output = model(batch_pairs.permute(0, 2, 1, 3, 4), return_only_codebook_ids=True)
@@ -145,7 +144,7 @@ def find_videos(video_dir, pattern="*.mp4"):
     for p in Path(video_dir).rglob(pattern):
         if p.is_file():
             video_path = str(p)
-            if "/video/" in video_path:
+            if "/video/" or "/videos/" in video_path:
                 videos.append(video_path)
     return sorted(videos)
 
@@ -155,6 +154,7 @@ def load_model(model_type, model_path, local_rank):
     if local_rank == 0:
         print(f"Loading {model_type.upper()} model from {model_path}...")
 
+    # TODO: Load latent action model
     if model_type == "lapa":
         model = LatentActionQuantization(
             dim=1024, quant_dim=32, codebook_size=8, image_size=256, patch_size=32,
@@ -369,7 +369,7 @@ def cleanup_temp_slices(slice_files, keep_temp=False):
     removed_dirs = 0
     for temp_dir in sorted(temp_dirs, reverse=True): 
         current_dir = temp_dir
-        while current_dir and '/latent_action/temp/' in current_dir:
+        while current_dir and '/latent_action/temp' in current_dir:
             if os.path.exists(current_dir) and not os.listdir(current_dir):
                 os.rmdir(current_dir)
                 removed_dirs += 1
