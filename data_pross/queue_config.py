@@ -19,24 +19,13 @@ QUEUE_CONFIGS = {
         "data_root": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing",
     },
     "sh": {
-        "code_root": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-nlp-sh02/3A/multimodal/yiyang11/dexbotic",
-        "data_root": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-nlp-sh02/3A/multimodal/yiyang11",
+        "code_root": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-nlp-sh02/hadoop-aipnlp/EVA/yiyang11/workspace/VLAPretrain",
+        "data_root": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-nlp-sh02/hadoop-aipnlp/EVA/yiyang11",
     },
     
     "queue3": {
         "code_root": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/queue3/workspace/dexbotic",
         "data_root": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/queue3",
-    },
-}
-
-MODEL_CONFIGS = {
-    "lapa": {
-        "model_path": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-nlp-sh02/native_mm/yiyang11/huggingface/latent-action-pretraining/LAPA-7B-openx/laq_openx.pt",
-        "image_size": 256,
-    },
-    "univla": {
-        "model_path": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-nlp-sh02/native_mm/yiyang11/huggingface/qwbu/univla-latent-action-model/main/lam-stage-2.ckpt",
-        "image_size": 224,
     },
 }
 

@@ -1,6 +1,8 @@
 # import sys
 # sys.path.append("/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/EVA/yangheqing/workspace/LVLA")
-
+import sys
+code_root = Path(__file__).parent.parent.parent
+sys.path.append(str(code_root))
 import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -16,6 +18,8 @@ from tqdm import tqdm
 import argparse
 import json
 from collections import defaultdict
+from data_pross.queue_config import DATA_ROOT
+
 
 
 def setup_distributed():
@@ -683,7 +687,6 @@ if __name__ == "__main__":
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Generate latent action representations from videos")
     parser.add_argument("--video_dir", type=str, default="extract_data/video", help="Directory containing video files")
-    parser.add_argument("--base_output_dir", type=str, default="extract_data/latent_action/", help="Base output directory")
     parser.add_argument("--slice_size", type=int, default=128, help="Number of frames per slice for distributed processing")
     parser.add_argument("--merge-only", action="store_true", help="Only merge existing slices, skip processing")
     parser.add_argument("--no-merge", action="store_true", help="Skip merging after processing")
@@ -694,11 +697,11 @@ if __name__ == "__main__":
     # Model configurations
     MODEL_CONFIGS = {
         "lapa": {
-            "model_path": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-nlp-sh02/native_mm/yiyang11/huggingface/latent-action-pretraining/LAPA-7B-openx/laq_openx.pt",
+            "model_path": f"{DATA_ROOT}/huggingface/latent-action-pretraining/LAPA-7B-openx/laq_openx.pt",
             "image_size": 256,
         },
         "univla": {
-            "model_path": "/mnt/dolphinfs/ssd_pool/docker/user/hadoop-nlp-sh02/native_mm/yiyang11/huggingface/qwbu/univla-latent-action-model/main/lam-stage-2.ckpt",
+            "model_path": f"{DATA_ROOT}/huggingface/qwbu/univla-latent-action-model/main/lam-stage-2.ckpt",
             "image_size": 224,
         },
     }
