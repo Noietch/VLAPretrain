@@ -618,6 +618,7 @@ def gen_latent_action(
     # Process frame slices assigned to this rank
     # Save each slice immediately to temp directory
     slice_count = 0
+    skipped_count = 0
 
     for slice_data in loader:
         frames = slice_data['frames']
@@ -626,6 +627,16 @@ def gen_latent_action(
         start_frame = slice_data['start_frame']
         total_frames = slice_data['total_frames']
 
+        # Build temp slice path to check if already processed
+        temp_slice_path = _build_output_path(video_path, model_type, base_output_dir, is_temp=True, start_frame=start_frame, rank=rank)
+
+        # Skip if already processed
+        if os.path.exists(temp_slice_path):
+            print(f"[Rank {rank}/{world_size}] Skipping (already processed): {video_path} "
+                  f"[frames {start_frame}-{slice_data['end_frame']}/{total_frames}]")
+            skipped_count += 1
+            continue
+
         print(f"[Rank {rank}/{world_size}] Processing: {video_path} "
               f"[frames {start_frame}-{slice_data['end_frame']}/{total_frames}]")
 
@@ -633,9 +644,6 @@ def gen_latent_action(
         codebook_idx, start_frame = process_frame_slice(
             frames, start_frame, total_frames, model, model_type, window_size, batch_size
         )
-
-        # Save slice immediately to temp directory
-        temp_slice_path = _build_output_path(video_path, model_type, base_output_dir, is_temp=True, start_frame=start_frame, rank=rank)
 
         try:
             slice_data_to_save = {
@@ -664,9 +672,9 @@ def gen_latent_action(
     # Wait for all processes to finish processing
     if dist.is_initialized():
         dist.barrier()
-        print(f"[Rank {rank}] Finished processing, saved {slice_count} slices to temp directory")
+        print(f"[Rank {rank}] Finished processing: saved {slice_count} slices, skipped {skipped_count} already processed slices")
     else:
-        print(f"[Single thread] Finished processing, saved {slice_count} slices to temp directory")
+        print(f"[Single thread] Finished processing: saved {slice_count} slices, skipped {skipped_count} already processed slices")
 
     cleanup_distributed()
 
@@ -676,7 +684,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate latent action representations from videos")
     parser.add_argument("--video_dir", type=str, default="extract_data/video", help="Directory containing video files")
     parser.add_argument("--base_output_dir", type=str, default="extract_data/latent_action/", help="Base output directory")
-    parser.add_argument("--slice_size", type=int, default=100, help="Number of frames per slice for distributed processing")
+    parser.add_argument("--slice_size", type=int, default=128, help="Number of frames per slice for distributed processing")
     parser.add_argument("--merge-only", action="store_true", help="Only merge existing slices, skip processing")
     parser.add_argument("--no-merge", action="store_true", help="Skip merging after processing")
     parser.add_argument("--keep-temp", action="store_true", help="Keep temporary slice files after merging")
@@ -726,8 +734,8 @@ if __name__ == "__main__":
             video_pattern="*.mp4",
             base_output_dir=args.video_dir,
             image_size=model_config["image_size"],
-            window_size=5,
-            batch_size=4,
+            window_size=1,
+            batch_size=6,
             num_workers=3,
             prefetch_factor=2,
             slice_size=args.slice_size,
