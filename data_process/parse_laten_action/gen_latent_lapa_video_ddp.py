@@ -18,7 +18,7 @@ from tqdm import tqdm
 import argparse
 import json
 from collections import defaultdict
-from data_pross.queue_config import DATA_ROOT
+from data_process.queue_config import DATA_ROOT
 
 
 
